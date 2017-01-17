@@ -3,39 +3,45 @@ package main
 import (
 	"flag"
 	"fmt"
-	"io"
 	"os"
 	"path/filepath"
 
 	"github.com/cloudfoundry/bytefmt"
 )
 
-func search(thresholdSize int64, w io.Writer) filepath.WalkFunc {
-	return func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
+func search(location string, thresholdSize int64) chan string {
+	chann := make(chan string)
 
-		if info.IsDir() {
+	go func() {
+		filepath.Walk(location, func(path string, info os.FileInfo, err error) error {
+			if err != nil {
+				chann <- fmt.Sprintf("%v", err)
+				return nil
+			}
+
+			if info.IsDir() {
+				return nil
+			}
+
+			if info.Size() > thresholdSize {
+				chann <- fmt.Sprintf("%s (%s)", path, bytefmt.ByteSize(uint64(info.Size())))
+			}
 			return nil
-		}
-
-		if info.Size() > thresholdSize {
-			fmt.Fprintf(w, "%s (%s)\n", path, bytefmt.ByteSize(uint64(info.Size())))
-		}
-		return nil
-	}
+		})
+		defer close(chann)
+	}()
+	return chann
 }
 
 func main() {
 	const version = "0.1.0"
 
 	var fileSizeStr string
-	var path string
+	var location string
 	var showVersion bool
 
 	flag.StringVar(&fileSizeStr, "s", "100M", "Threshold size to display.")
-	flag.StringVar(&path, "p", ".", "Search path.")
+	flag.StringVar(&location, "l", ".", "Search location.")
 	flag.BoolVar(&showVersion, "v", false, "show version")
 	flag.Parse()
 
@@ -52,9 +58,8 @@ func main() {
 		return
 	}
 
-	err = filepath.Walk(path, search(int64(thresholdSize), os.Stdout))
-	if err != nil {
-		fmt.Printf("File read error. %v\n", err)
-		os.Exit(1)
+	chann := search(location, int64(thresholdSize))
+	for msg := range chann {
+		fmt.Println(msg)
 	}
 }
