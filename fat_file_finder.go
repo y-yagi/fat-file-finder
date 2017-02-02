@@ -13,7 +13,7 @@ func search(location string, thresholdSize int64) chan string {
 	chann := make(chan string)
 
 	go func() {
-		filepath.Walk(location, func(path string, info os.FileInfo, err error) error {
+		_ = filepath.Walk(location, func(path string, info os.FileInfo, err error) error {
 			if err != nil {
 				chann <- fmt.Sprintf("%v", err)
 				return nil
