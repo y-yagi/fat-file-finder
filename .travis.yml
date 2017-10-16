@@ -5,7 +5,7 @@ go:
   - 1.7
 
 install:
-  - go get github.com/cloudfoundry/bytefmt
+  - go get code.cloudfoundry.org/bytefmt
   - go get github.com/golang/lint/golint
 
 before_script:
