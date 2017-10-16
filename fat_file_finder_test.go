@@ -3,7 +3,7 @@ package main
 import (
 	"testing"
 
-	"github.com/cloudfoundry/bytefmt"
+	"code.cloudfoundry.org/bytefmt"
 )
 
 func TestSearch(t *testing.T) {
