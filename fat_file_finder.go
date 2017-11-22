@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -33,7 +34,7 @@ func search(location string, thresholdSize int64, wg *sync.WaitGroup) {
 	wg.Done()
 }
 
-func main() {
+func run(args []string, outStream, errStream io.Writer) (exitCode int) {
 	const version = "0.1.0"
 
 	var fileSizeStr string
@@ -41,28 +42,31 @@ func main() {
 	var showVersion bool
 	var wg sync.WaitGroup
 
-	flag.StringVar(&fileSizeStr, "s", "100M", "Threshold size to display.")
-	flag.StringVar(&location, "l", ".", "Search location.")
-	flag.BoolVar(&showVersion, "v", false, "show version")
-	flag.Parse()
+	flags := flag.NewFlagSet("fat-file-finder", flag.ExitOnError)
+	flags.SetOutput(errStream)
+	flags.StringVar(&fileSizeStr, "s", "100M", "Threshold size to display.")
+	flags.StringVar(&location, "l", ".", "Search location.")
+	flags.BoolVar(&showVersion, "v", false, "show version")
+	flags.Parse(args[1:])
+
+	exitCode = 0
 
 	if showVersion {
 		fmt.Println("version:", version)
-		os.Exit(0)
 		return
 	}
 
 	thresholdSize, err := bytefmt.ToBytes(fileSizeStr)
 	if err != nil {
 		fmt.Printf("Threshold size is invalid value. %v\n", err)
-		os.Exit(1)
+		exitCode = 1
 		return
 	}
 
 	fileInfos, err := ioutil.ReadDir(location)
 	if err != nil {
 		fmt.Printf("Location is invalid value. %v\n", err)
-		os.Exit(1)
+		exitCode = 1
 		return
 	}
 
@@ -76,4 +80,10 @@ func main() {
 		}
 	}
 	wg.Wait()
+
+	return
+}
+
+func main() {
+	os.Exit(run(os.Args, os.Stdout, os.Stderr))
 }
