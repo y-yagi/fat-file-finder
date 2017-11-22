@@ -12,7 +12,7 @@ import (
 	"code.cloudfoundry.org/bytefmt"
 )
 
-func search(location string, thresholdSize int64, outStream io.Writer, wg *sync.WaitGroup) {
+func search(location string, thresholdSize int64, outStream io.Writer) {
 	err := filepath.Walk(location, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
@@ -31,7 +31,6 @@ func search(location string, thresholdSize int64, outStream io.Writer, wg *sync.
 	if err != nil {
 		fmt.Fprintf(outStream, "%v\n", err)
 	}
-	wg.Done()
 }
 
 func run(args []string, outStream, errStream io.Writer) (exitCode int) {
@@ -74,7 +73,10 @@ func run(args []string, outStream, errStream io.Writer) (exitCode int) {
 		fullPath := filepath.Join(location, fileInfo.Name())
 		if fileInfo.IsDir() {
 			wg.Add(1)
-			go search(fullPath, int64(thresholdSize), outStream, &wg)
+			go func() {
+				search(fullPath, int64(thresholdSize), outStream)
+				wg.Done()
+			}()
 		} else if fileInfo.Size() > int64(thresholdSize) {
 			fmt.Fprintf(outStream, "%s (%s)\n", fullPath, bytefmt.ByteSize(uint64(fileInfo.Size())))
 		}
