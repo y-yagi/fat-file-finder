@@ -12,7 +12,7 @@ import (
 	"code.cloudfoundry.org/bytefmt"
 )
 
-func search(location string, thresholdSize int64, wg *sync.WaitGroup) {
+func search(location string, thresholdSize int64, outStream io.Writer, wg *sync.WaitGroup) {
 	err := filepath.Walk(location, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
@@ -23,13 +23,13 @@ func search(location string, thresholdSize int64, wg *sync.WaitGroup) {
 		}
 
 		if info.Size() > thresholdSize {
-			fmt.Printf("%s (%s)\n", path, bytefmt.ByteSize(uint64(info.Size())))
+			fmt.Fprintf(outStream, "%s (%s)\n", path, bytefmt.ByteSize(uint64(info.Size())))
 		}
 		return nil
 	})
 
 	if err != nil {
-		fmt.Printf("%v\n", err)
+		fmt.Fprintf(outStream, "%v\n", err)
 	}
 	wg.Done()
 }
@@ -52,20 +52,20 @@ func run(args []string, outStream, errStream io.Writer) (exitCode int) {
 	exitCode = 0
 
 	if showVersion {
-		fmt.Println("version:", version)
+		fmt.Fprintln(outStream, "version:", version)
 		return
 	}
 
 	thresholdSize, err := bytefmt.ToBytes(fileSizeStr)
 	if err != nil {
-		fmt.Printf("Threshold size is invalid value. %v\n", err)
+		fmt.Fprintf(outStream, "Threshold size is invalid value. %v\n", err)
 		exitCode = 1
 		return
 	}
 
 	fileInfos, err := ioutil.ReadDir(location)
 	if err != nil {
-		fmt.Printf("Location is invalid value. %v\n", err)
+		fmt.Fprintf(outStream, "Location is invalid value. %v\n", err)
 		exitCode = 1
 		return
 	}
@@ -74,9 +74,9 @@ func run(args []string, outStream, errStream io.Writer) (exitCode int) {
 		fullPath := filepath.Join(location, fileInfo.Name())
 		if fileInfo.IsDir() {
 			wg.Add(1)
-			go search(fullPath, int64(thresholdSize), &wg)
+			go search(fullPath, int64(thresholdSize), outStream, &wg)
 		} else if fileInfo.Size() > int64(thresholdSize) {
-			fmt.Printf("%s (%s)\n", fullPath, bytefmt.ByteSize(uint64(fileInfo.Size())))
+			fmt.Fprintf(outStream, "%s (%s)\n", fullPath, bytefmt.ByteSize(uint64(fileInfo.Size())))
 		}
 	}
 	wg.Wait()
