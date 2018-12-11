@@ -12,24 +12,30 @@ import (
 	"code.cloudfoundry.org/bytefmt"
 )
 
+const (
+	typeFile = "f"
+	typeDir  = "d"
+)
+
 func search(location string, thresholdSize int64, outStream io.Writer) {
-	err := filepath.Walk(location, func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
-
-		if info.IsDir() {
-			return nil
-		}
-
-		if info.Size() > thresholdSize {
-			fmt.Fprintf(outStream, "%s (%s)\n", path, bytefmt.ByteSize(uint64(info.Size())))
-		}
-		return nil
-	})
-
+	fileInfos, err := ioutil.ReadDir(location)
 	if err != nil {
 		fmt.Fprintf(outStream, "%v\n", err)
+		return
+	}
+
+	var dirSize int64
+	for _, fileInfo := range fileInfos {
+		fullPath := filepath.Join(location, fileInfo.Name())
+		if fileInfo.IsDir() {
+			search(fullPath, int64(thresholdSize), outStream)
+		} else if fileInfo.Size() > int64(thresholdSize) {
+			fmt.Fprintf(outStream, "%s %s (%s)\n", typeFile, fullPath, bytefmt.ByteSize(uint64(fileInfo.Size())))
+			dirSize += fileInfo.Size()
+		}
+	}
+	if dirSize > thresholdSize {
+		fmt.Fprintf(outStream, "%s %s/ (%s)\n", typeDir, location, bytefmt.ByteSize(uint64(dirSize)))
 	}
 }
 
@@ -78,7 +84,7 @@ func run(args []string, outStream, errStream io.Writer) (exitCode int) {
 				wg.Done()
 			}()
 		} else if fileInfo.Size() > int64(thresholdSize) {
-			fmt.Fprintf(outStream, "%s (%s)\n", fullPath, bytefmt.ByteSize(uint64(fileInfo.Size())))
+			fmt.Fprintf(outStream, "%s %s (%s)\n", typeFile, fullPath, bytefmt.ByteSize(uint64(fileInfo.Size())))
 		}
 	}
 	wg.Wait()
