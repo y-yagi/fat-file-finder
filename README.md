@@ -2,7 +2,7 @@
 
 `fat-file-finder` is a tool for finding large files.
 
-[![Build Status](https://travis-ci.org/y-yagi/fat-file-finder.svg?branch=master)](https://travis-ci.org/y-yagi/fat-file-finder)
+[![CircleCI](https://circleci.com/gh/y-yagi/fat-file-finder.svg?style=svg)](https://circleci.com/gh/y-yagi/fat-file-finder)
 
 ## Installation
 
