@@ -27,12 +27,12 @@ Usage of ./fat-file-finder:
 Example.
 
 ```
-$ ./fat-file-finder -s 300M
-.AndroidStudioPreview2.0/system/index/android.value.resources.index/android.value.resources.index.values (427.6M)
-.android/avd/Nexus_5_API_22_x86.avd/userdata-qemu.img (550M)
-.android/avd/Nexus_5_API_22_x86.avd/userdata.img (550M)
-.android/avd/Nexus_S_Edited_API_19.avd/userdata-qemu.img (550M)
-.android/avd/Nexus_S_Edited_API_19.avd/userdata.img (550M
+$ fat-file-finder -s 300M
+f .AndroidStudioPreview2.0/system/index/android.value.resources.index/android.value.resources.index.values (427.6M)
+f .android/avd/Nexus_5_API_22_x86.avd/userdata-qemu.img (550M)
+f .android/avd/Nexus_5_API_22_x86.avd/userdata.img (550M)
+f .android/avd/Nexus_S_Edited_API_19.avd/userdata-qemu.img (550M)
+f .android/avd/Nexus_S_Edited_API_19.avd/userdata.img (550M
 ...
 ```
 
