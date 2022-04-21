@@ -2,8 +2,6 @@
 
 `fat-file-finder` is a tool for finding large files.
 
-[![CircleCI](https://circleci.com/gh/y-yagi/fat-file-finder.svg?style=svg)](https://circleci.com/gh/y-yagi/fat-file-finder)
-
 ## Installation
 
 Use `go get` to install this package:
