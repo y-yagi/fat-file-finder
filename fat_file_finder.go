@@ -4,7 +4,6 @@ import (
 	"flag"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"sync"
@@ -18,20 +17,25 @@ const (
 )
 
 func search(location string, thresholdSize int64, outStream io.Writer) {
-	fileInfos, err := ioutil.ReadDir(location)
+	entries, err := os.ReadDir(location)
 	if err != nil {
 		fmt.Fprintf(outStream, "%v\n", err)
 		return
 	}
 
 	var dirSize int64
-	for _, fileInfo := range fileInfos {
-		fullPath := filepath.Join(location, fileInfo.Name())
-		if fileInfo.IsDir() {
+	for _, entry := range entries {
+		info, err := entry.Info()
+		if err != nil {
+			fmt.Fprintf(outStream, "%v\n", err)
+		}
+
+		fullPath := filepath.Join(location, info.Name())
+		if info.IsDir() {
 			search(fullPath, int64(thresholdSize), outStream)
-		} else if fileInfo.Size() > int64(thresholdSize) {
-			fmt.Fprintf(outStream, "%s %s (%s)\n", typeFile, fullPath, bytefmt.ByteSize(uint64(fileInfo.Size())))
-			dirSize += fileInfo.Size()
+		} else if info.Size() > int64(thresholdSize) {
+			fmt.Fprintf(outStream, "%s %s (%s)\n", typeFile, fullPath, bytefmt.ByteSize(uint64(info.Size())))
+			dirSize += info.Size()
 		}
 	}
 	if dirSize > thresholdSize {
@@ -68,23 +72,28 @@ func run(args []string, outStream, errStream io.Writer) (exitCode int) {
 		return
 	}
 
-	fileInfos, err := ioutil.ReadDir(location)
+	entries, err := os.ReadDir(location)
 	if err != nil {
 		fmt.Fprintf(outStream, "Location is invalid value. %v\n", err)
 		exitCode = 1
 		return
 	}
 
-	for _, fileInfo := range fileInfos {
-		fullPath := filepath.Join(location, fileInfo.Name())
-		if fileInfo.IsDir() {
+	for _, entry := range entries {
+		info, err := entry.Info()
+		if err != nil {
+			fmt.Fprintf(outStream, "%v\n", err)
+		}
+
+		fullPath := filepath.Join(location, info.Name())
+		if info.IsDir() {
 			wg.Add(1)
 			go func() {
 				search(fullPath, int64(thresholdSize), outStream)
 				wg.Done()
 			}()
-		} else if fileInfo.Size() > int64(thresholdSize) {
-			fmt.Fprintf(outStream, "%s %s (%s)\n", typeFile, fullPath, bytefmt.ByteSize(uint64(fileInfo.Size())))
+		} else if info.Size() > int64(thresholdSize) {
+			fmt.Fprintf(outStream, "%s %s (%s)\n", typeFile, fullPath, bytefmt.ByteSize(uint64(info.Size())))
 		}
 	}
 	wg.Wait()
