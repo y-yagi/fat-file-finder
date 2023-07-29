@@ -2,9 +2,4 @@ module github.com/y-yagi/fat-file-finder
 
 go 1.20
 
-require code.cloudfoundry.org/bytefmt v0.0.0-20200131002437-cf55d5288a48
-
-require (
-	github.com/onsi/ginkgo v1.7.0 // indirect
-	github.com/onsi/gomega v1.4.3 // indirect
-)
+require code.cloudfoundry.org/bytefmt v0.0.0-20230612151507-41ef4d1f67a4
