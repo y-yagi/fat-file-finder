@@ -4,10 +4,8 @@
 
 ## Installation
 
-Use `go get` to install this package:
-
 ```bash
-$ go get github.com/y-yagi/fat-file-finder
+$ go install github.com/y-yagi/fat-file-finder@latest
 ```
 
 ## Usage
