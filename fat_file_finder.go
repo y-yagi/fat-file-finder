@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 
 	"code.cloudfoundry.org/bytefmt"
@@ -43,12 +44,51 @@ func search(location string, thresholdSize int64, outStream io.Writer) {
 	}
 }
 
+func searchApt(thresholdSize int64, outStream io.Writer) {
+	const dpkgInfoDir = "/var/lib/dpkg/info"
+
+	listFiles, err := filepath.Glob(filepath.Join(dpkgInfoDir, "*.list"))
+	if err != nil || len(listFiles) == 0 {
+		fmt.Fprintf(outStream, "Failed to read dpkg info: %v\n", err)
+		return
+	}
+
+	var wg sync.WaitGroup
+	for _, listFile := range listFiles {
+		listFile := listFile
+		pkg := strings.TrimSuffix(filepath.Base(listFile), ".list")
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			data, err := os.ReadFile(listFile)
+			if err != nil {
+				return
+			}
+			for _, file := range strings.Split(string(data), "\n") {
+				file = strings.TrimSpace(file)
+				if file == "" {
+					continue
+				}
+				info, err := os.Stat(file)
+				if err != nil || info.IsDir() {
+					continue
+				}
+				if info.Size() > thresholdSize {
+					fmt.Fprintf(outStream, "%s %s [%s] (%s)\n", typeFile, file, pkg, bytefmt.ByteSize(uint64(info.Size())))
+				}
+			}
+		}()
+	}
+	wg.Wait()
+}
+
 func run(args []string, outStream, errStream io.Writer) (exitCode int) {
 	const version = "0.1.0"
 
 	var fileSizeStr string
 	var location string
 	var showVersion bool
+	var aptMode bool
 	var wg sync.WaitGroup
 
 	flags := flag.NewFlagSet("fat-file-finder", flag.ExitOnError)
@@ -56,6 +96,7 @@ func run(args []string, outStream, errStream io.Writer) (exitCode int) {
 	flags.StringVar(&fileSizeStr, "s", "100M", "Threshold size to display.")
 	flags.StringVar(&location, "l", ".", "Search location.")
 	flags.BoolVar(&showVersion, "v", false, "show version")
+	flags.BoolVar(&aptMode, "apt", false, "Search files in apt installed packages.")
 	flags.Parse(args[1:])
 
 	exitCode = 0
@@ -69,6 +110,11 @@ func run(args []string, outStream, errStream io.Writer) (exitCode int) {
 	if err != nil {
 		fmt.Fprintf(outStream, "Threshold size is invalid value. %v\n", err)
 		exitCode = 1
+		return
+	}
+
+	if aptMode {
+		searchApt(int64(thresholdSize), outStream)
 		return
 	}
 
